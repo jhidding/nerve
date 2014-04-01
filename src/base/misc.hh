@@ -91,6 +91,9 @@ namespace System
 	// }}}1
 
 	// numerics {{{1
+	inline int fsign(double a)
+	{ return (a < 0 ? -1 : 1); }
+
 	inline double round_up(double a)
 	{ return (a < 0.0 ? int(a) : int(a) + 1); }
 

@@ -10,6 +10,8 @@ namespace Nerve
 	using Misc::vecdet;
 	using System::Array;
 	using System::mVector;
+	using System::fsign;
+	using System::round_down;
 
 	using Misc::for_each_decrement;
 	using Misc::for_each_line_intersection;
