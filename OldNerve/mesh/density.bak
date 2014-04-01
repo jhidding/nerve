@@ -1,0 +1,302 @@
+//library
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <vector>
+#include <numeric>
+#include <complex>
+#include <queue>
+#include <cmath>
+
+//interface
+#include "../libconan/getopt/getopt.h"
+#include "../libconan/default_filename.h"
+#include "../libconan/conan/discard_block.h"
+#include "../libconan/conan.h"
+#include "../libconan/cvector.h"
+#include "../libconan/spaces.h"
+#include "../libconan/random/random.h"
+
+//mathmatics
+#include "../libconan/dft/dft.h"
+#include "../libconan/complex_util.h"
+
+//#include "jacobian.h"
+#include "decomposition.h"
+#include "../nv/enhance.h"
+#include "eigen.h"
+
+using namespace std;
+using namespace Conan;
+
+template <typename T, int rank>
+mVector<T, rank> modN(mVector<T, rank> const &v, cVector x1, cVector x2, unsigned N, float L)
+{
+	mVector<T, rank> u = v;
+	for (unsigned k = 0; k < rank; ++k)
+	{
+		if (int(x2[k]) - int(x1[k]) < 0)
+		{
+			u[k] += N;
+		}
+	}
+	return u;
+}
+
+template <int rank>
+class TidalStrength
+{};
+
+template <>
+class TidalStrength<3>: public Cube<float>
+{
+	enum { rank = 3 };
+	cVector dx[rank];
+	SymEigenV eigen;
+
+	public:
+		TidalStrength(Cube<float> const &phi):
+			Cube<float>("tidal strength"),
+			eigen(rank)
+		{
+			unsigned bits = BoxConfig::bits();
+			size_t	size = BoxConfig::size();
+
+			for (unsigned k = 0; k < rank; ++k)
+				dx[k] = cVector(rank, 1, 1 << k);
+
+//			unsigned symsize = ((rank + 1) * rank / 2);
+
+			for (cVector x(rank, bits, 0); x < size; ++x)
+			{
+				GslMatrix M(rank);
+				for (unsigned i = 0; i < rank; ++i)
+				{
+					for (unsigned j = 0; j <= i; ++j)
+					{
+						M.index(j, i) = (j == i ? 0.0 :
+							((phi[x + dx[j] + dx[i]] 
+							- phi[x + dx[j] - dx[i]])
+							-  (phi[x - dx[j] + dx[i]] 
+							- phi[x - dx[j] - dx[i]])) / 4.0);
+						M.index(i, j) = M.index(j, i);
+					}
+				}
+
+				GslVector eval(rank);
+				GslMatrix evec(rank);
+				eigen(M, eval, evec);
+
+				(*this)[x] = sqrt(pow(eval.index(0),2) + pow(eval.index(1),2) + pow(eval.index(2),2));
+			}
+		}
+};
+
+template <int rank>
+void density(std::istream &fi, std::ostream &fo)
+{}
+
+template <>
+void density<2>(std::istream &fi, std::ostream &fo)
+{
+	enum { rank = 2 };
+
+	GetOpt options = GetOpt::instance();
+
+	cerr << "Calculating the 2D density from the Eulerian map." << endl;
+
+	unsigned skip = options.get_value("-idx", 0);
+	for (unsigned i = 0; i < skip; ++i)
+	{
+		discard_block(fi);
+		discard_block(fi);
+	}
+//	discard_block(fi);
+//	discard_block(fi);
+//	discard_block(fi);
+//	discard_block(fi);
+
+	Cube<mVector<double, rank>>	E(fi);
+	Cube<double>			H(fi);
+
+	unsigned bits 	= BoxConfig::bits();
+	unsigned size 	= BoxConfig::size();
+	unsigned N	= BoxConfig::N();
+	float	 L	= BoxConfig::L();
+
+	Cube<float>	rho("density");
+
+	int count = 0;
+	for (cVector x(rank, bits, 0); x < size; ++x)
+	{
+		mVector<double, rank> C[4];
+		for (cVector dx(rank, 1, 0); dx < (1 << rank); ++dx)
+			C[dx] = mVector<double, rank>(modN(E[x + dx], x, x+dx, N, L));
+
+		rho[x] = 0.5 * (
+			(C[1][0] - C[0][0]) * (C[2][1] - C[0][1]) - 
+			(C[1][1] - C[0][1]) * (C[2][0] - C[0][0]) +
+			(C[2][0] - C[3][0]) * (C[1][1] - C[3][1]) - 
+			(C[2][1] - C[3][1]) * (C[1][0] - C[3][0]));
+
+		if (rho[x] < 0.0) ++count;
+	}
+
+	cerr << "[done] : " << count << " jinxes" << endl;
+	rho.to_file(fo);
+}
+
+template <>
+void density<3>(std::istream &fi, std::ostream &fo)
+{
+	enum { rank = 3 };
+
+	GetOpt options = GetOpt::instance();
+
+	cerr << "here I am, brain the size of a planet, calculating nothing ... " << endl;
+	cerr << "trying to show progress into the unfunctioning nothingness ... " << endl;
+	cerr << "but the inner loop is never reached, everlasting torchure is our part ... " << endl;
+
+	if (options.has("-enhance"))
+	{
+		discard_block(fi);
+		discard_block(fi);
+		discard_block(fi);
+		discard_block(fi);
+
+		Cube<mVector<double, rank>>	E(fi);
+		Cube<double>			H(fi);
+		
+		//====================================================================================
+		if (options.has("-alt"))
+		{
+			typedef typename std::pair<mVector<double, rank>, double> sv_pair;
+			typedef typename std::vector<sv_pair>			sv_vector;
+			typedef typename std::pair<size_t, sv_vector> 		alt_pair;
+			typedef typename std::map<size_t, sv_vector>		alt_map;
+
+			discard_block(fi);
+			FLT::enhance_alternatives<rank> ea(fi);
+
+			unsigned count = 0;
+			for_each(ea.begin(), ea.end(), [&] (alt_pair const &ap)
+			{
+				typename sv_vector::const_iterator m = min_element(ap.second.begin(), ap.second.end(), [] (
+						sv_pair const &sv1, sv_pair const &sv2)
+				{
+					return sv1.second < sv2.second;
+				});
+
+
+				if (norm(E[ap.first] - m->first) > 0.001)
+				{
+					//cerr << "Moved a point from " << E[ap.first] << " to " << m->first << endl;
+					++count;
+				}
+
+				E[ap.first] = m->first;
+			});
+			cerr << "Moved " << count << " points in total" << endl;
+		}
+
+		//====================================================================================
+		cerr << "Calculating density ... ";
+		unsigned bits 	= BoxConfig::bits();
+		unsigned size 	= BoxConfig::size();
+		unsigned N	= BoxConfig::N();
+		float	 L	= BoxConfig::L();
+
+		Cube<float>	rho("density");
+
+		unsigned count = 0;
+		for (cVector x(rank, bits, 0); x < size; ++x)
+		{
+			mVector<double, rank> C[8];
+			for (cVector dx(rank, 1, 0); dx < (1 << rank); ++dx)
+				C[dx] = mVector<double, rank>(modN(E[x + dx], x, x+dx, N, L));
+
+			rho[x] = Hex::decos[5].volume(C);
+			if (rho[x] < 0.0) ++count;
+		}
+		cerr << "[done] : " << count << " jinxes" << endl;
+		rho.to_file(fo);
+
+		//====================================================================================
+		cerr << "Calculating non-linear potential ... ";
+		DFT dft(rank, bits);
+		Spaces::KSpace<rank>	K(N, L);
+		Cube<float>	phi("non-linear potential");
+
+		// calculate full non-linear potential
+		copy(rho.begin(), rho.end(), dft.in());
+		dft.forward();
+		transform(K.begin(), K.end(), dft.out(), dft.in(),
+			[] (mVector<float, rank> const &k, complex<double> const &v)
+		{ 
+			return v / sqr(k); 
+		});
+		dft.in()[0] = 0;
+		dft.backward();
+		transform(dft.out(), dft.out() + size, phi.begin(), [size] (std::complex<double> &z)
+		{ 
+			return z.real() / double(size); 
+		});
+		phi.to_file(fo);
+		cerr << "[done]" << endl;
+
+		cerr << "Calculating tidal strength ... ";
+		TidalStrength<rank>	T(phi);
+		T.to_file(fo);
+		cerr << "[done]";
+	}
+	else
+	{
+	}
+}
+
+void density()
+{
+	GetOpt options = GetOpt::instance();
+
+	float		b	= options.get_value("-b", 1.0);
+
+	string fn_input = options.get_value("-input",
+			timed_filename("nv", b));
+
+	cerr << "opening: " << fn_input << endl;
+
+	string fn_output = options.get_value("-output",
+			timed_filename("sg", b));
+
+	ifstream fi;
+	fi.open(fn_input.c_str(), ios::in | ios::binary);
+
+	Header 		H(fi);
+	History 	I(fi);
+
+	unsigned	rank 	= from_string<unsigned>(H["rank"]);
+	unsigned	N	= from_string<unsigned>(H["N"]);
+	float		L 	= from_string<float>(H["L"]);
+
+	BoxConfig::initialize(rank, N, L);
+
+	ofstream fo;
+	fo.open(fn_output.c_str(), ios::out | ios::binary);
+
+	H.to_file(fo);
+	I.to_file(fo);
+
+	switch (rank)
+	{
+		case 1:	density<1>(fi, fo); break;
+		case 2:	density<2>(fi, fo); break;
+		case 3:	density<3>(fi, fo); break;
+	}
+
+	fi.close();
+	fo.close();
+}
+
