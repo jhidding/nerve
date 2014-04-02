@@ -56,6 +56,10 @@ namespace System
 
 			using Ref<std::vector<T>>::get;
 
+			Array():
+				Ref<std::vector<T>>(new std::vector<T>())
+			{}
+
 			Array(size_t n, T value = T()):
 				Ref<std::vector<T>>(new std::vector<T>(n, value))
 			{}
@@ -73,8 +77,8 @@ namespace System
 
 			Array<T> copy() const
 			{
-				Array<T> A(size());
-				std::copy(begin(), end(), A.begin());
+				Array<T> A(this->size());
+				std::copy(this->begin(), this->end(), A.begin());
 				return A;
 			}
 	};

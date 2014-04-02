@@ -35,23 +35,36 @@ namespace System
 		public:
 			Fourier::KSpace<R> const K;
 			GridSpace<R>	   const G;
+			System::MdRange<R> const I;
 			std::vector<mVector<int, R>> block;
+			std::vector<mVector<int, R>> dx;
 
 			Box(unsigned N_, double L_):
 				mN(N_), mL(L_), mRes(L_/N_), mRes2(mRes*mRes),
 				mShape(R, N_), mStride(R),
 				mSize(ipow(N_, R)),
 				K(Fourier::kspace<R>(N_, L_)),
-				G(grid_space<R>(N_, L_)),
-				block(1 << R)
+				G(grid_space<R>(N_, L_)), I(mVector<int, R>(N_)),
+				block(1 << R), dx(R, mVector<int, R>(0))
 			{
 				mStride[0] = 1;
 				for (unsigned i = 1; i < R; ++i)
+				{
 					mStride[i] = mStride[i-1] * N_;
+				}
+				
+				for (unsigned i = 0; i < R; ++i)
+				{
+					std::cerr << mStride[i] << " ";
+					dx[i][i] = 1;
+				}
+				std::cerr << std::endl;
 
 				MdRange<R> b(mVector<int, R>(2));
-				for (unsigned i = 1; i < (1 << R); ++i)
+				for (unsigned i = 0; i < (1 << R); ++i)
+				{
 					block[i] = b[i];
+				}
 			}
 
 			double L() const { return mL; }

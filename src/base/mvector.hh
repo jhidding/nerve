@@ -52,6 +52,7 @@ namespace System
 			T const *end() const { return p + R; }
 			T &operator[](unsigned i) { return p[i]; }
 			T const &operator[](unsigned i) const { return p[i]; }
+			static unsigned size() { return R; }
 
 			template <typename Fun>
 			mVector operate(Fun f) const
@@ -151,6 +152,12 @@ namespace System
 			T sum() const
 			{
 				return std::accumulate(begin(), end(), T(0));
+			}
+
+			T prod() const
+			{
+				return std::accumulate(begin(), end(), T(1),
+					std::multiplies<T>());
 			}
 
 			T inf_norm() const

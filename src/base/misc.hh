@@ -183,6 +183,17 @@ namespace System
 		return [random, normal] () -> double 
 			{ return (*normal)(*random); };
 	}
+
+	inline std::function<double ()> Uniform_noise(unsigned long seed)
+	{
+		std::shared_ptr<std::mt19937> 
+			random(new std::mt19937(seed));
+		std::shared_ptr<std::uniform_real_distribution<double>> 
+			uniform(new std::uniform_real_distribution<double>(0.0, 1.0));
+
+		return [random, uniform] () -> double 
+			{ return (*uniform)(*random); };	
+	}
 	// }}}2
 	// }}}1
 

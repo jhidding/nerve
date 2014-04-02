@@ -34,7 +34,14 @@ void cmd_nerve(int argc, char **argv)
 
 		Option({Option::VALUED | Option::CHECK, "", "txt", "",
 			"takes a list of triangles and plots those on the specified box. "
-			"Parameter gives name of file to be read. Output to <id>.nerve.conan. "}));
+			"Parameter gives name of file to be read. Output to <id>.nerve.conan. "}),
+
+		Option({Option::VALUED | Option::CHECK, "", "seed", timed_seed,
+			"random seed used to generate the initial conditions. "
+			"By default the number of seconds since Epoch is used. "}),
+			
+		Option({Option::VALUED | Option::CHECK, "", "random", "0",
+			"number of random triangles to draw."}));
 
 	if (C.get<bool>("help"))
 	{
@@ -43,16 +50,41 @@ void cmd_nerve(int argc, char **argv)
 		exit(0);
 	}
 
+	unsigned dim = C.get<unsigned>("dim");
+	unsigned N = C.get<unsigned>("box");
+	double L = C.get<double>("size");
+
+	std::ofstream fo(format(C["id"], ".nerve.conan"));
+
 	if (C["txt"] != "")
 	{
 		std::ifstream fi(C["txt"]);
-		std::ofstream fo(format(C["id"], ".nerve.conan"));
 
 		switch (dim)
 		{
-			case 2: Nerve::from_txt<2>(std::make_shared<Box<2>(N, L), fi, fo);
-			case 3: Nerve::from_txt<3>(std::make_shared<Box<3>(N, L), fi, fo);
+			case 2: Nerve::from_txt<2>(std::make_shared<Box<2>>(N, L), fi, fo);
+				break;
+			case 3: Nerve::from_txt<3>(std::make_shared<Box<3>>(N, L), fi, fo);
+				break;
 		}
+
+		fo << "\n\n";
+	}
+
+	if (C["random"] != "0")
+	{
+		unsigned M = C.get<unsigned>("random");
+		unsigned long seed = C.get<unsigned long>("seed");
+
+		switch (dim)
+		{
+			case 2: Nerve::draw_random<2>(std::make_shared<Box<2>>(N, L), M, fo, seed);
+				break;
+			case 3: Nerve::draw_random<3>(std::make_shared<Box<3>>(N, L), M, fo, seed);
+				break;
+		}
+
+		fo << "\n\n";
 	}
 }
 

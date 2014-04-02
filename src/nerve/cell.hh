@@ -8,10 +8,15 @@
 namespace Nerve
 {
 	using Misc::vecdet;
+	using Misc::det2;
+	using Misc::det3;
+
 	using System::Array;
 	using System::mVector;
 	using System::fsign;
 	using System::round_down;
+	using System::Box;
+	using System::ptr;
 
 	using Misc::for_each_decrement;
 	using Misc::for_each_line_intersection;
@@ -40,12 +45,20 @@ namespace Nerve
 				for_each_decrement(m_points, 
 					[&] (PointSet A, Point const &b)
 				{
-					if (vecdet(A, b) * vecdet(A, q) < 0)
+					if (vecdet<R>(A, b) * vecdet<R>(A, q) < 0)
 						l = false;
 				});
 
 				return l;
 			}
+
+			Point centre_of_mass() const
+			{
+				Point p = std::accumulate(m_points.begin(), m_points.end(), Point(0));
+				return p / m_points.size();
+			}
+
+			double volume() const;
 
 			/* for-each-vertex-edge-face-adjacency
 			 * Assuming the coordinates are defined on a grid, we may compute
@@ -55,17 +68,28 @@ namespace Nerve
 			 * kind of accumulator function.
 			 */
 			template <typename Func>
-			void for_each_vefa(Func blub) const;
+			void for_each_vefa(ptr<Box<R>> box, Func blub) const;
 	};
 
 	template <>
-	template <typename Func>
-	Cell<2>::for_each_vefa<Func>(Func blub) const
+	double Cell<2>::volume() const
 	{
-		mVector<int, 2> dx[2];
-		for (unsigned k = 0; k < 2; ++k)
-			dx[k][k] = 1;
+		return det2(m_points[1] - m_points[0], 
+		            m_points[2] - m_points[0]) / 2;
+	}
 
+	template <>
+	double Cell<3>::volume() const
+	{
+		return det3(m_points[1] - m_points[0], 
+			    m_points[2] - m_points[0],
+			    m_points[3] - m_points[0]) / 6;
+	}
+	
+	template <>
+	template <typename Func>
+	void Cell<2>::for_each_vefa(ptr<Box<2>> box, Func blub) const
+	{
 		/* Each time we take out a vertex from the cell, we obtain a sub-cell
 		 * by descending into the hierarchy of cells, we pass every combination
 		 * of vertex and face.
@@ -118,17 +142,17 @@ namespace Nerve
 				unsigned m = (k + 1) % 2;
 				mVector<int, 2> X; X[k] = round(x[k]); X[m] = round_down(x[m]);
 
-				blub(X,           x[k] * x[m] * fsign(p[m]) / 2.0);
-				blub(X - dx[k], - x[k] * x[m] * fsign(p[m]) / 2.0);
-				blub(X,           x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
-				blub(X - dx[k], - x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
+				blub(X,                x[k] * x[m] * fsign(p[m]) / 2.0);
+				blub(X - box->dx[k], - x[k] * x[m] * fsign(p[m]) / 2.0);
+				blub(X,                x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
+				blub(X - box->dx[k], - x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
 			});
 		});
 	}
 
 	template <>
 	template <typename Func>
-	Cell<3>::for_each_vefa<Func>(Func blub) const
+	void Cell<3>::for_each_vefa(ptr<Box<3>> box, Func blub) const
 	{
 	}
 }
