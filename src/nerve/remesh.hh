@@ -44,7 +44,6 @@ namespace Nerve
 				A[idx] += f * a;
 			});
 
-			
 			Misc::flood_fill(
 				iPoint(data[i].centre_of_mass()),
 				[&] (iPoint const &x)
@@ -55,15 +54,17 @@ namespace Nerve
 				// if on boundary, only continue on boundary
 				if (bread_crumbs[idx] == i*3 + 3)
 				{
-					for (unsigned k = 0; k < R; ++k)
-				{
-					size_t idx1 = box->idx(x - box->dx[k]),
-					       idx2 = box->idx(x + box->dx[k]);
-					if ((bread_crumbs[idx1] == i*3+1) or data[i].contains(x - box->dx[k]))
-						n->push_back(x - box->dx[k]);
-					if ((bread_crumbs[idx2] == i*3+1) or data[i].contains(x + box->dx[k]))
-						n->push_back(x + box->dx[k]);
-				}}
+					MdRange<R> DX(iPoint(3)); iPoint one(1);
+					for (auto &dx : DX)
+					{
+						iPoint p = x + dx - one;
+						size_t idx = box->idx(p);
+						size_t bc = bread_crumbs[idx];
+						if ((bc == i*3+1) or 
+						    (bc <  i*3+1) and data[i].contains(p))
+							n->push_back(p);
+					}
+				}
 				else {
 					MdRange<R> DX(iPoint(3)); iPoint one(1);
 					for (auto &dx : DX)
@@ -96,10 +97,13 @@ namespace Nerve
 					bread_crumbs[idx] = i*3 + 2;
 
 				// the value added is +/-(x[0]*x[1]*...)
-				double a = x.prod();
 				for (iPoint const &dx : box->block)
 				{
-					size_t idx = box->idx(x - dx);
+					iPoint p = (x - dx) % box->N();
+					iPoint x = p + dx;
+					double a = x.prod();
+
+					size_t idx = box->idx(p);
 					int sign = (dx.sum() % 2 == 0 ? 1 : -1);
 					A[idx] += sign * f * a;
 				}

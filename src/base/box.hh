@@ -26,6 +26,7 @@ namespace System
 	template <unsigned R>
 	class Box
 	{
+		bool			mPeriodic;
 		unsigned 		mN;
 		double 			mL, mRes, mRes2;
 		std::vector<unsigned>	mShape;
@@ -39,7 +40,8 @@ namespace System
 			std::vector<mVector<int, R>> block;
 			std::vector<mVector<int, R>> dx;
 
-			Box(unsigned N_, double L_):
+			Box(unsigned N_, double L_, bool p_ = true):
+				mPeriodic(p_),
 				mN(N_), mL(L_), mRes(L_/N_), mRes2(mRes*mRes),
 				mShape(R, N_), mStride(R),
 				mSize(ipow(N_, R)),
@@ -67,6 +69,7 @@ namespace System
 				}
 			}
 
+			bool periodic() const { return mPeriodic; }
 			double L() const { return mL; }
 			unsigned N() const { return mN; }
 			double scale() const { return mRes; }

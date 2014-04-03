@@ -108,7 +108,8 @@ namespace Nerve
 				p[0] = l[1]; p[1] = -l[0];	   // p perp. to l
 				p *= (p.dot(c - a) > 0 ? 1 : -1);  // pointing into the cell
 
-				blub(a.floor(), a.dot(l) * a.dot(p) / 2.); 
+				Point am = a % box->N();
+				blub(a.floor(), am.dot(l) * am.dot(p) / 2.); 
 				                                   // accumulate the result of 
 								   // the vertex on the grid cell
 			});
@@ -140,12 +141,26 @@ namespace Nerve
 				[&] (Point const &x, unsigned k)
 			{
 				unsigned m = (k + 1) % 2;
-				mVector<int, 2> X; X[k] = round(x[k]); X[m] = round_down(x[m]);
+				Point xm = x % box->N();
+				mVector<int, 2> X; X[k] = round(xm[k]); X[m] = round_down(xm[m]);
 
-				blub(X,                x[k] * x[m] * fsign(p[m]) / 2.0);
-				blub(X - box->dx[k], - x[k] * x[m] * fsign(p[m]) / 2.0);
-				blub(X,                x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
-				blub(X - box->dx[k], - x.dot(l) * x.dot(p) * fsign(l[k]) / 2.0);
+				// if X lies on the edge of the box, we should do something special
+				if (X[k] != 0)
+				{
+					blub(X,                xm[k] * xm[m] * fsign(p[m]) / 2.0);
+					blub(X - box->dx[k], - xm[k] * xm[m] * fsign(p[m]) / 2.0);
+					blub(X,                xm.dot(l) * xm.dot(p) * fsign(l[k]) / 2.0);
+					blub(X - box->dx[k], - xm.dot(l) * xm.dot(p) * fsign(l[k]) / 2.0);
+				}
+				else
+				{
+					Point xn = xm; xn[k] = box->N();
+					// xm[k] = 0 = N
+					// blub(X,             xm[k] * xm[m] * fsign(p[m]) / 2.0);
+					blub(X - box->dx[k], - xn[k] * xn[m] * fsign(p[m]) / 2.0);
+					blub(X,                xm.dot(l) * xm.dot(p) * fsign(l[k]) / 2.0);
+					blub(X - box->dx[k], - xn.dot(l) * xn.dot(p) * fsign(l[k]) / 2.0);
+				}
 			});
 		});
 	}
