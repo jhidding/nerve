@@ -85,5 +85,21 @@ namespace System
 				return a;
 			}
 	};
+
+	class BoxMaker
+	{
+		unsigned N;
+		double   L;
+
+		public:
+			BoxMaker(unsigned N_, double L_):
+				N(N_), L(L_) {}
+
+			template <unsigned R>
+			ptr<Box<R>> box() const
+			{
+				return make_ptr<Box<R>>(N, L);
+			}
+	};
 }
 

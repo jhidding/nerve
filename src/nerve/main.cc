@@ -26,6 +26,10 @@ void cmd_nerve(int argc, char **argv)
 			"number of dimensions in which to run the code. "
 			"Usually this should by 2 or 3."}),
 
+		Option({Option::VALUED | Option::CHECK, "p", "pos", "0",
+			"read positions from a file named <id>.pos.<n>.conan, "
+			"triangulate its deformed cells."}),
+
 		Option({Option::VALUED | Option::CHECK, "N", "box", "256",
 			"size of the mass-box."}),
 
@@ -55,6 +59,24 @@ void cmd_nerve(int argc, char **argv)
 	double L = C.get<double>("size");
 
 	std::ofstream fo(format(C["id"], ".nerve.conan"));
+
+	if (C["pos"] != 0)
+	{
+		std::ifstream fi(format(C["id"], ".pos.", C.get<unsigned>("pos"), ".conan"));
+		Header H(fi) ; H << C;
+		History I(fi) ; I << C;
+
+		switch (H.get<unsigned>("dim"))
+		{
+			case 2: Nerve::from_grid<2>(make_ptr<Box<2>>(N, L), fi, fo);
+				break;
+				
+			case 3: Nerve::from_grid<3>(make_ptr<Box<3>>(N, L), fi, fo);
+				break; 
+		}
+
+		fi.close(); fo.close();
+	}
 
 	if (C["txt"] != "")
 	{
