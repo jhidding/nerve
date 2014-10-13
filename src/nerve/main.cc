@@ -40,6 +40,9 @@ void cmd_nerve(int argc, char **argv)
 			"takes a list of triangles and plots those on the specified box. "
 			"Parameter gives name of file to be read. Output to <id>.nerve.conan. "}),
 
+		Option({0, "sc", "stream-count", "false",
+			"count the number of streams."}),
+
 		Option({Option::VALUED | Option::CHECK, "", "seed", timed_seed,
 			"random seed used to generate the initial conditions. "
 			"By default the number of seconds since Epoch is used. "}),
@@ -57,10 +60,11 @@ void cmd_nerve(int argc, char **argv)
 	unsigned dim = C.get<unsigned>("dim");
 	unsigned N = C.get<unsigned>("box");
 	double L = C.get<double>("size");
+	bool stream_count = C.get<bool>("stream-count");
 
 	std::ofstream fo(format(C["id"], ".nerve.conan"));
 
-	if (C["pos"] != 0)
+	/*if (C["pos"] != 0)
 	{
 		std::ifstream fi(format(C["id"], ".pos.", C.get<unsigned>("pos"), ".conan"));
 		Header H(fi) ; H << C;
@@ -76,7 +80,7 @@ void cmd_nerve(int argc, char **argv)
 		}
 
 		fi.close(); fo.close();
-	}
+	}*/
 
 	if (C["txt"] != "")
 	{
@@ -84,9 +88,9 @@ void cmd_nerve(int argc, char **argv)
 
 		switch (dim)
 		{
-			case 2: Nerve::from_txt<2>(std::make_shared<Box<2>>(N, L), fi, fo);
+			case 2: Nerve::from_txt<2>(std::make_shared<Box<2>>(N, L), fi, fo, stream_count);
 				break;
-			case 3: Nerve::from_txt<3>(std::make_shared<Box<3>>(N, L), fi, fo);
+			case 3: Nerve::from_txt<3>(std::make_shared<Box<3>>(N, L), fi, fo, stream_count);
 				break;
 		}
 

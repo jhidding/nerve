@@ -18,7 +18,7 @@ namespace Nerve
 	using System::mVector;
 
 	template <unsigned R>
-	void from_txt(ptr<Box<R>> box, std::istream &fi, std::ostream &fo)
+	void from_txt(ptr<Box<R>> box, std::istream &fi, std::ostream &fo, bool sc = false)
 	{
 		typedef mVector<double, R> Point;
 		typedef Array<Point> PointSet;
@@ -46,7 +46,7 @@ namespace Nerve
 
 		std::cerr << "read " << data.size() << " cells. [done]\n";
 
-		Array<double> rho = Remesh<R>::from_cells(box, data);
+		Array<double> rho = Remesh<R>::from_cells(box, data, sc);
 
 		if (R == 2)
 		{

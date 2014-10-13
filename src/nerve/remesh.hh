@@ -23,18 +23,18 @@ namespace Nerve
 			typedef mVector<double, R> Point;
 			typedef Array<Point> PointSet;
 
-			static Array<double> from_cells(ptr<Box<R>> box, Array<Cell<R>> data);
+			static Array<double> from_cells(ptr<Box<R>> box, Array<Cell<R>> data, bool sc = false);
 	};
 
 	template <unsigned R>
-	Array<double> Remesh<R>::from_cells(ptr<Box<R>> box, Array<Cell<R>> data)
+	Array<double> Remesh<R>::from_cells(ptr<Box<R>> box, Array<Cell<R>> data, bool sc)
 	{
 		Array<double> A(box->size(), 0.0);
 		Array<size_t> bread_crumbs(box->size(), 0);
 
 		for (size_t i = 0; i < data.size(); ++i)
 		{
-			double f = 1./fabs(data[i].volume());
+			double f = (sc ? 1.0 : 1./fabs(data[i].volume()));
 
 			// draw the contours
 			data[i].for_each_vefa(box, [&] (iPoint const &p, double a)
