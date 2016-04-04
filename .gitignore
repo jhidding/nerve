@@ -1,3 +1,7 @@
+# Vim editor
+*~
+.*.swp
+
 # Compiled Object files
 *.slo
 *.lo
